@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/openai/openai-go/v3"
@@ -11,6 +14,10 @@ import (
 	"github.com/openai/openai-go/v3/packages/param"
 	"github.com/openai/openai-go/v3/shared"
 )
+
+type ToolArgs struct {
+	FilePath string `json:"file_path"`
+}
 
 func main() {
 	var prompt string
@@ -78,9 +85,42 @@ func main() {
 		panic("No choices in response")
 	}
 
+	// If a tool call is in the response, assume it's a "Read" tool call
+	// and execute it and print the result to stdout.
+	// Otherwise, print the response's content to stdout.
+	if len(resp.Choices[0].Message.ToolCalls) > 0 {
+		toolName := resp.Choices[0].Message.ToolCalls[0].Function.Name
+		toolArgsJSON := resp.Choices[0].Message.ToolCalls[0].Function.Arguments
+		var parsedToolArgs ToolArgs
+		if err := json.Unmarshal([]byte(toolArgsJSON), &parsedToolArgs); err != nil {
+			log.Fatal("error unmarshalling json, perhaps the agent hallucinated:", err)
+		}
+
+		var toolCallResult string
+		if toolName == "Read" {
+			toolCallResult, err = Read(parsedToolArgs.FilePath)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		fmt.Print(toolCallResult)
+	} else {
+		fmt.Print(resp.Choices[0].Message.Content)
+	}
+
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Fprintln(os.Stderr, "Logs from your program will appear here!")
+}
 
-	// TODO: Uncomment the line below to pass the first stage
-	fmt.Print(resp.Choices[0].Message.Content)
+// Tool intended to be called by an agent.
+// Reads the file at the specified path and returns its contents.
+func Read(path string) (content string, err error) {
+	if path == "" {
+		return "", errors.New("model did not return a filepath")
+	}
+	bs, err := os.ReadFile(path)
+	if err != nil {
+		log.Fatal("error reading file:", err)
+	}
+	return string(bs), nil
 }
