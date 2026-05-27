@@ -17,6 +17,7 @@ import (
 
 type ToolArgs struct {
 	FilePath string `json:"file_path"`
+	Content  string `json:"content"`
 }
 
 func main() {
@@ -136,12 +137,19 @@ func main() {
 				}
 
 				var toolCallResult string
-				if toolName == "Read" {
+				switch toolName {
+				case "Read":
 					toolCallResult, err = Read(parsedToolArgs.FilePath)
 					if err != nil {
 						log.Fatal(err)
 					}
-				} else {
+				case "Write":
+					err = Write(parsedToolArgs.FilePath, parsedToolArgs.Content)
+					if err != nil {
+						log.Fatal(err)
+					}
+					toolCallResult = "Write successful"
+				default:
 					log.Fatal("unrecognized tool call: ", toolName)
 				}
 				messages = append(messages, openai.ChatCompletionMessageParamUnion{
