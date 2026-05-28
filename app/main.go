@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -11,14 +10,7 @@ import (
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
-	"github.com/openai/openai-go/v3/packages/param"
-	"github.com/openai/openai-go/v3/shared"
 )
-
-type ToolArgs struct {
-	FilePath string `json:"file_path"`
-	Content  string `json:"content"`
-}
 
 func main() {
 	var prompt string
@@ -46,53 +38,6 @@ func main() {
 			OfUser: &openai.ChatCompletionUserMessageParam{
 				Content: openai.ChatCompletionUserMessageParamContentUnion{
 					OfString: openai.String(prompt),
-				},
-			},
-		},
-	}
-
-	tools := []openai.ChatCompletionToolUnionParam{
-		{
-			OfFunction: &openai.ChatCompletionFunctionToolParam{
-				Function: shared.FunctionDefinitionParam{
-					Name: "Read",
-					Description: param.Opt[string]{
-						Value: "Read and return the contents of a file",
-					},
-					Parameters: shared.FunctionParameters{
-						"type": "object",
-						"properties": map[string]any{
-							"file_path": map[string]any{
-								"type":        "string",
-								"description": "The path to the file to be read",
-							},
-						},
-						"required": []string{"file_path"},
-					},
-				},
-			},
-		},
-		{
-			OfFunction: &openai.ChatCompletionFunctionToolParam{
-				Function: shared.FunctionDefinitionParam{
-					Name: "Write",
-					Description: param.Opt[string]{
-						Value: "Write content to a file",
-					},
-					Parameters: shared.FunctionParameters{
-						"type": "object",
-						"properties": map[string]any{
-							"file_path": map[string]any{
-								"type":        "string",
-								"description": "The content to write to the file",
-							},
-							"content": map[string]any{
-								"type":        "string",
-								"description": "The content to write to the file",
-							},
-						},
-						"required": []string{"file_path", "content"},
-					},
 				},
 			},
 		},
@@ -149,6 +94,12 @@ func main() {
 						log.Fatal(err)
 					}
 					toolCallResult = "Write successful"
+				case "Bash":
+					res, err := Bash(parsedToolArgs.Command)
+					if err != nil {
+						log.Fatal(err)
+					}
+					toolCallResult = res
 				default:
 					log.Fatal("unrecognized tool call: ", toolName)
 				}
@@ -170,34 +121,4 @@ func main() {
 
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Fprintln(os.Stderr, "Logs from your program will appear here!")
-}
-
-// Tool intended to be called by an agent.
-// Reads the file at the specified path and returns its contents.
-func Read(path string) (content string, err error) {
-	if path == "" {
-		return "", errors.New("read tool requires a filepath")
-	}
-	bs, err := os.ReadFile(path)
-	if err != nil {
-		return "", fmt.Errorf("error reading file: %w", err)
-	}
-	return string(bs), nil
-}
-
-// Tool intended to be called by an agent.
-// Writes the content to the file at the specified path.
-// Creates the file if it doesn't exist; truncates it if it does.
-func Write(path string, content string) error {
-	if path == "" {
-		return errors.New("write tool requires a filepath")
-	}
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(0o644))
-	if err != nil {
-		return fmt.Errorf("error creating file descriptor: %w", err)
-	}
-	if _, err = f.Write([]byte(content)); err != nil {
-		return fmt.Errorf("error writing to file: %w", err)
-	}
-	return nil
 }
