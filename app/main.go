@@ -61,14 +61,6 @@ func main() {
 
 		messages = append(messages, resp.Choices[0].Message.ToParam())
 
-		if resp.Choices[0].FinishReason == "stop" {
-			fmt.Println("Agent loop stopped.")
-			break
-		}
-
-		// If a tool call is in the response, assume it's a "Read" tool call,
-		// execute it, and append the result to the messages array.
-		// Otherwise, exit the loop and print the response's content to stdout.
 		if len(resp.Choices[0].Message.ToolCalls) > 0 {
 			toolCalls := resp.Choices[0].Message.ToolCalls
 

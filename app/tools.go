@@ -142,6 +142,8 @@ func Write(path string, content string) error {
 	return nil
 }
 
+// Tool intended to be called by an agent.
+// Executes the command and returns the result written to its stdout.
 func Bash(command string) (result string, err error) {
 	if command == "" {
 		return "", errors.New("Bash tool requires a command")
