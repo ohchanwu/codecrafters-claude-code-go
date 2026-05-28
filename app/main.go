@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -76,30 +75,41 @@ func main() {
 			for _, toolCall := range toolCalls {
 				toolName := toolCall.Function.Name
 				toolArgsJSON := toolCall.Function.Arguments
-				var parsedToolArgs ToolArgs
-				if err := json.Unmarshal([]byte(toolArgsJSON), &parsedToolArgs); err != nil {
-					log.Fatal("error unmarshaling json tool arguments, perhaps the agent hallucinated:", err)
-				}
+				// var parsedToolArgs ToolArgsWrapper
+				// if err := json.Unmarshal([]byte(toolArgsJSON), &parsedToolArgs); err != nil {
+				// 	log.Fatal("error unmarshaling json tool arguments, perhaps the agent hallucinated:", err)
+				// }
 
 				var toolCallResult string
 				switch toolName {
 				case "Read":
+					parsedToolArgs, err := parseToolArgs[ReadToolArgs](toolArgsJSON)
+					if err != nil {
+						log.Fatal(err)
+					}
 					toolCallResult, err = Read(parsedToolArgs.FilePath)
 					if err != nil {
 						log.Fatal(err)
 					}
 				case "Write":
+					parsedToolArgs, err := parseToolArgs[WriteToolArgs](toolArgsJSON)
+					if err != nil {
+						log.Fatal(err)
+					}
 					err = Write(parsedToolArgs.FilePath, parsedToolArgs.Content)
 					if err != nil {
 						log.Fatal(err)
 					}
 					toolCallResult = "Write successful"
 				case "Bash":
-					res, err := Bash(parsedToolArgs.Command)
+					parsedToolArgs, err := parseToolArgs[BashToolArgs](toolArgsJSON)
 					if err != nil {
 						log.Fatal(err)
 					}
-					toolCallResult = res
+					toolCallResult, err = Bash(parsedToolArgs.Command)
+					if err != nil {
+						log.Fatal(err)
+					}
 				default:
 					log.Fatal("unrecognized tool call: ", toolName)
 				}

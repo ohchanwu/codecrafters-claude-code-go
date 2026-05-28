@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -12,10 +13,30 @@ import (
 	"github.com/openai/openai-go/v3/shared"
 )
 
-type ToolArgs struct {
+type ReadToolArgs struct {
+	FilePath string `json:"file_path"`
+}
+
+type WriteToolArgs struct {
 	FilePath string `json:"file_path"`
 	Content  string `json:"content"`
-	Command  string `json:"command"`
+}
+
+type BashToolArgs struct {
+	Command string `json:"command"`
+}
+
+type ToolArgsInterface interface {
+	ReadToolArgs | WriteToolArgs | BashToolArgs
+}
+
+func parseToolArgs[T ToolArgsInterface](
+	toolArgsJSON string,
+) (parsedToolArgs *T, err error) {
+	if err := json.Unmarshal([]byte(toolArgsJSON), parsedToolArgs); err != nil {
+		return nil, fmt.Errorf("error unmarshaling json tool arguments, perhaps the agent hallucinated: %w", err)
+	}
+	return parsedToolArgs, nil
 }
 
 var tools = []openai.ChatCompletionToolUnionParam{
