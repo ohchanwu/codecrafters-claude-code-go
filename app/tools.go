@@ -33,7 +33,7 @@ type ToolArgsInterface interface {
 func parseToolArgs[T ToolArgsInterface](
 	toolArgsJSON string,
 ) (parsedToolArgs *T, err error) {
-	if err := json.Unmarshal([]byte(toolArgsJSON), parsedToolArgs); err != nil {
+	if err := json.Unmarshal([]byte(toolArgsJSON), &parsedToolArgs); err != nil {
 		return nil, fmt.Errorf("error unmarshaling json tool arguments, perhaps the agent hallucinated: %w", err)
 	}
 	return parsedToolArgs, nil
