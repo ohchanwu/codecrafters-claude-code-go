@@ -61,10 +61,10 @@ func main() {
 
 		messages = append(messages, resp.Choices[0].Message.ToParam())
 
-		// if resp.Choices[0].FinishReason == "stop" {
-		// 	fmt.Println("Agent loop stopped.")
-		// 	break
-		// }
+		if resp.Choices[0].FinishReason == "stop" {
+			fmt.Println("Agent loop stopped.")
+			break
+		}
 
 		// If a tool call is in the response, assume it's a "Read" tool call,
 		// execute it, and append the result to the messages array.
@@ -75,10 +75,6 @@ func main() {
 			for _, toolCall := range toolCalls {
 				toolName := toolCall.Function.Name
 				toolArgsJSON := toolCall.Function.Arguments
-				// var parsedToolArgs ToolArgsWrapper
-				// if err := json.Unmarshal([]byte(toolArgsJSON), &parsedToolArgs); err != nil {
-				// 	log.Fatal("error unmarshaling json tool arguments, perhaps the agent hallucinated:", err)
-				// }
 
 				var toolCallResult string
 				switch toolName {

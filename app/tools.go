@@ -13,6 +13,9 @@ import (
 	"github.com/openai/openai-go/v3/shared"
 )
 
+// Split the monolithic "ToolArgs" struct type into modular types.
+// Maybe not necessary for a simple implementation like this with 3 tools,
+// but if more tools are added (15+), I believe this will prove prudent.
 type ReadToolArgs struct {
 	FilePath string `json:"file_path"`
 }
@@ -126,12 +129,15 @@ func Write(path string, content string) error {
 	if path == "" {
 		return errors.New("Write tool requires a filepath")
 	}
+	if content == "" {
+		return errors.New("Write tool requires content")
+	}
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(0o644))
 	if err != nil {
 		return fmt.Errorf("error creating file descriptor: %w", err)
 	}
 	if _, err = f.Write([]byte(content)); err != nil {
-		return fmt.Errorf("error writing to file: %w", err)
+		return fmt.Errorf("error writing to file at %s: %w", path, err)
 	}
 	return nil
 }
